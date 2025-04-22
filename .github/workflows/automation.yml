@@ -33,7 +33,7 @@ jobs:
           
       - name: Run automation
         run: |
-          python shorts_creator.py "${{ inputs.custom_topic }}"
+          python shorts_automator.py "${{ inputs.custom_topic }}"
         env:
           YOUTUBE_CREDENTIALS: ${{ secrets.YOUTUBE_CREDENTIALS }}
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
