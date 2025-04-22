@@ -183,7 +183,7 @@ class HinglishShortsCreator:
 if __name__ == "__main__":
     import sys
     if __name__ == "__main__":
-    creator = HinglishShortsCreator()
-    video_path = creator.create_video()
-    if video_path:
-        creator.upload_video(video_path)
+        creator = HinglishShortsCreator()
+        video_path = creator.create_video()
+        if video_path:
+            creator.upload_video(video_path)
