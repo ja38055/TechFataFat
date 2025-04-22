@@ -32,6 +32,7 @@ class YouTubeShortsAutomator:
     def get_trending_topic(self):
         try:
             df = self.pytrends.trending_searches(pn='india')
+            print(df)
             return df[0][0] if not df.empty else "Tech News Update"
         except:
             return "Latest Tech Updates"
@@ -94,8 +95,8 @@ if __name__ == "__main__":
     topic = automator.get_trending_topic()
     print(f"Today's topic: {topic}")
     
-    video_path = automator.create_short_video(topic)
-    if video_path:
+    video_path = 0 # automator.create_short_video(topic)
+    if video_path and False:
         print("Video created successfully!")
         if automator.upload_to_youtube(video_path, topic):
             print("Upload successful!")
