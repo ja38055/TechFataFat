@@ -12,13 +12,17 @@ import requests
 
 class YouTubeShortsAutomator:
     def __init__(self):
-        # Load credentials from environment variables
-        creds_info = json.loads(os.environ['YOUTUBE_CREDENTIALS'])
-        self.credentials = Credentials.from_authorized_user_info(creds_info, [
-            'https://www.googleapis.com/auth/youtube.upload'
-        ])
+        # Load credentials directly from the JSON string
+        creds_dict = json.loads(os.environ['YOUTUBE_CREDENTIALS'])
+        self.credentials = Credentials(
+            token=creds_dict.get('token'),
+            refresh_token=creds_dict.get('refresh_token'),
+            token_uri=creds_dict.get('token_uri'),
+            client_id=creds_dict.get('client_id'),
+            client_secret=creds_dict.get('client_secret'),
+            scopes=creds_dict.get('scopes')
+        )
         self.channel_name = os.environ.get('CHANNEL_NAME', 'TechFatafat')
-        self.pytrends = TrendReq(hl='en-US', tz=360)
         
     def get_trending_topic(self):
         """Get trending tech topic using Google Trends"""
