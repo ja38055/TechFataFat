@@ -11,91 +11,149 @@ from moviepy.editor import *
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 
-class GitHubShortsCreator:
+class HinglishShortsCreator:
     def __init__(self, topic=None):
         self.topic = topic or self.get_trending_topic()
+        self.font_path = "NotoSansDevanagari-Regular.ttf"  # Hindi font
         self.voice_settings = {
-            'lang': 'en',
-            'tld': 'com',  # American English (male voice)
+            'lang': 'hi' if np.random.random() > 0.5 else 'en',
             'slow': False
         }
         
     def get_trending_topic(self):
-        """Get tech trends from Google Trends"""
-        try:
-            pytrends = TrendReq()
-            df = pytrends.trending_searches(pn='IN')  # India
-            return df[0][0] if not df.empty else "Latest Tech News"
-        except:
-            tech_terms = ["AI Development", "5G Technology", "Quantum Computing"]
-            return np.random.choice(tech_terms)
+        """Get Hinglish tech topics"""
+        hinglish_topics = [
+            "5G ki speed", "AI ka future", "Smartphone ki latest features",
+            "Bitcoin ka bhav", "WhatsApp new updates", "Laptop buying tips"
+        ]
+        return np.random.choice(hinglish_topics)
     
-    def generate_assets(self):
-        """Create all video components"""
-        # 1. Generate script
-        script = (f"Tech enthusiasts! Breaking news about {self.topic}. "
-                 "Stay tuned to TechFatafat for daily tech updates!")
-        
-        # 2. Create voiceover
-        tts = gTTS(script, **self.voice_settings)
-        voice_path = os.path.join(tempfile.gettempdir(), "voiceover.mp3")
-        tts.save(voice_path)
-        
-        # 3. Generate visuals
-        try:
-            # Use Unsplash API if available
-            access_key = os.getenv('UNSPLASH_ACCESS_KEY', '')
-            if access_key:
-                url = f"https://api.unsplash.com/photos/random?query={self.topic}-technology&client_id={access_key}"
-                response = requests.get(url)
-                img_url = response.json()['urls']['regular']
-            else:
-                img_url = f"https://source.unsplash.com/1080x1920/?{self.topic.replace(' ','-')}-technology"
+    def generate_hinglish_script(self):
+        """Generate Hinglish script"""
+        templates = [
+            ("Tech lovers suno! Aaj ki top story {topic} ke bare mein. "
+             "Ye technology hamare life ko kar rahi hai bahut easy. "
+             "Full details ke liye like karo aur subscribe karo {channel} ko!"),
             
-            img = Image.open(BytesIO(requests.get(img_url).content))
-        except:
-            # Fallback to tech pattern
-            img = Image.new('RGB', (1080, 1920), (10, 20, 30))
-            draw = ImageDraw.Draw(img)
-            # Add circuit pattern
-            for i in range(0, 1080, 50):
-                draw.line([(i, 0), (i, 1920)], fill=(0, 100, 200), width=1)
-        
-        # Add text overlay
-        draw = ImageDraw.Draw(img)
-        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 80)
-        draw.text((100, 100), "Tech Update", fill=(0, 200, 255), font=font)
-        draw.text((100, 200), self.topic, fill=(255, 255, 255), font=font)
-        
-        bg_path = os.path.join(tempfile.gettempdir(), "background.jpg")
-        img.save(bg_path)
-        
-        return voice_path, bg_path
+            ("Kya aapko pata hai? {topic} mein hai amazing innovations. "
+             "Iske advantages aur disadvantages janane ke liye, "
+             "comment section mein poocho humse!"),
+            
+            ("Breaking tech news! {topic} ne badal diya game. "
+             "Janiye iske sabhi features hamare saath. {channel} ke saath raho updated!")
+        ]
+        return np.random.choice(templates).format(
+            topic=self.topic,
+            channel=os.environ.get('CHANNEL_NAME', 'TechFatafat')
+        )
+
+    def create_hinglish_audio(self, script):
+        """Generate Hinglish TTS with code-switching"""
+        try:
+            # Split into Hindi and English parts
+            parts = []
+            current_lang = 'en'
+            for word in script.split():
+                if any(c.isalpha() and ord(c) > 128 for c in word):
+                    if current_lang != 'hi':
+                        parts.append(('hi', []))
+                        current_lang = 'hi'
+                    parts[-1][1].append(word)
+                else:
+                    if current_lang != 'en':
+                        parts.append(('en', []))
+                        current_lang = 'en'
+                    parts[-1][1].append(word)
+            
+            # Generate audio clips
+            clips = []
+            for lang, words in parts:
+                text = ' '.join(words)
+                with tempfile.NamedTemporaryFile(suffix=".mp3") as fp:
+                    tts = gTTS(text, lang=lang)
+                    tts.save(fp.name)
+                    clips.append(AudioFileClip(fp.name))
+            
+            # Combine audio
+            final_audio = concatenate_audioclips(clips)
+            audio_path = os.path.join(tempfile.gettempdir(), "audio.mp3")
+            final_audio.write_audiofile(audio_path)
+            return audio_path
+            
+        except Exception as e:
+            print(f"Audio error: {e}")
+            return None
+
+    def create_hinglish_visuals(self):
+        """Create Hinglish text overlay"""
+        try:
+            # Background image with Indian tech theme
+            response = requests.get("https://source.unsplash.com/1080x1920/?india,technology")
+            img = Image.open(BytesIO(response.content))
+            
+            # Add gradient overlay
+            overlay = Image.new('RGBA', img.size, (0,0,0,100))
+            draw = ImageDraw.Draw(overlay)
+            
+            # Hinglish text
+            font = ImageFont.truetype(self.font_path, 60)
+            draw.text((50, 100), "Tech Samachar", fill=(255, 165, 0), font=font)  # Orange text
+            draw.text((50, 200), self.topic, fill=(255,255,255), font=font)
+            
+            # English subheading
+            en_font = ImageFont.truetype("arial.ttf", 40)
+            draw.text((50, 300), "Latest Technology Updates", fill=(173,216,230), font=en_font)
+            
+            final_img = Image.alpha_composite(img.convert('RGBA'), overlay)
+            img_path = os.path.join(tempfile.gettempdir(), "bg.png")
+            final_img.save(img_path)
+            return img_path
+            
+        except Exception as e:
+            print(f"Visual error: {e}")
+            return None
 
     def create_video(self):
-        """Build video file"""
-        voice_path, bg_path = self.generate_assets()
+        """Create Hinglish short"""
+        script = self.generate_hinglish_script()
+        audio_path = self.create_hinglish_audio(script)
+        bg_path = self.create_hinglish_visuals()
         
-        audio = AudioFileClip(voice_path)
-        duration = min(max(audio.duration, 30), 60)  # 30-60 seconds
-        
-        video = (ImageClip(bg_path)
-                .set_duration(duration)
-                .set_audio(audio)
-                .fx(vfx.colorx, 0.9)
-                .fx(vfx.lum_contrast, 0.8))
-        
-        output_path = os.path.join(tempfile.gettempdir(), "output.mp4")
-        video.write_videofile(
-            output_path,
-            fps=24,
-            codec="libx264",
-            preset="ultrafast",
-            threads=4,
-            audio_codec="aac"
-        )
-        return output_path
+        if not audio_path or not bg_path:
+            return None
+            
+        try:
+            audio = AudioFileClip(audio_path)
+            duration = min(max(audio.duration, 30), 60)
+            
+            video = (ImageClip(bg_path)
+                    .set_duration(duration)
+                    .set_audio(audio)
+                    .fx(vfx.colorx, 0.9)
+                    .fx(vfx.lum_contrast, 0.8))
+            
+            # Add subtle background music
+            bgm = AudioFileClip("indian_bgm.mp3").volumex(0.1).subclip(0, duration)
+            final_audio = CompositeAudioClip([audio, bgm])
+            video = video.set_audio(final_audio)
+            
+            output_path = os.path.join(tempfile.gettempdir(), "short.mp4")
+            video.write_videofile(
+                output_path,
+                fps=24,
+                codec="libx264",
+                preset="ultrafast",
+                audio_codec="aac",
+                threads=4
+            )
+            return output_path
+            
+        finally:
+            for f in [audio_path, bg_path]:
+                if os.path.exists(f):
+                    os.remove(f)
 
+    
     def upload_video(self, video_path):
         """YouTube upload handler"""
         creds = Credentials.from_authorized_user_info(
@@ -124,15 +182,8 @@ class GitHubShortsCreator:
 
 if __name__ == "__main__":
     import sys
-    topic = sys.argv[1] if len(sys.argv) > 1 else None
-    
-    creator = GitHubShortsCreator(topic)
+    if __name__ == "__main__":
+    creator = HinglishShortsCreator()
     video_path = creator.create_video()
-    
-    if video_path and os.path.exists(video_path):
-        result = creator.upload_video(video_path)
-        print(f"Uploaded video ID: {result['id']}")
-        os.remove(video_path)
-    else:
-        print("Video creation failed")
-        exit(1)
+    if video_path:
+        creator.upload_video(video_path)
