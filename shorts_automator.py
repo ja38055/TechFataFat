@@ -29,26 +29,35 @@ class YouTubeShortsAutomator:
             return "Latest Tech Updates"
     
     def create_short_video(self, topic):
-        """Create faceless short video with AI voice"""
-        # Generate AI voiceover
-        tts = gTTS(f"Hello {self.channel_name} viewers! Today's topic is {topic}", lang='en', tld='co.in')
-        voiceover = BytesIO()
-        tts.write_to_fp(voiceover)
-        voiceover.seek(0)
-        
-        # Create video frame
-        img = Image.new('RGB', (1080, 1920), color=(30, 30, 60))
-        draw = ImageDraw.Draw(img)
-        font = ImageFont.truetype("arial.ttf", 80)
-        
-        # Add text
-        text = f"Tech Short:\n{topic}"
-        draw.text((540, 960), text, font=font, fill=(255, 255, 255), anchor="mm")
-        
-        # Save as video
-        video_path = "short.mp4"
-        os.system(f"ffmpeg -loop 1 -i image.png -i audio.mp3 -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest {video_path}")
-        return video_path
+        """Enhanced video creation with better visuals"""
+        try:
+            # Get tech stock image (placeholder - replace with real API)
+            response = requests.get(f"https://source.unsplash.com/1080x1920/?technology,{topic.split()[0]}")
+            img = Image.open(BytesIO(response.content))
+            
+            # Add overlay
+            overlay = Image.new('RGBA', img.size, (0,0,0,128))
+            img = Image.alpha_composite(img.convert('RGBA'), overlay)
+            
+            # Add text
+            draw = ImageDraw.Draw(img)
+            font = ImageFont.truetype("arial.ttf", 80)
+            text = f"Tech Update:\n{topic}"
+            draw.text((540, 800), text, font=font, fill=(255,255,255), anchor="mm")
+            
+            # Save image
+            img.save("background.png")
+            
+            # Generate voiceover
+            tts = gTTS(f"Hello Tech Fatafat viewers! Today's tech update: {topic}", lang='en', tld='co.in')
+            tts.save("voiceover.mp3")
+            
+            # Create video (requires ffmpeg)
+            os.system('ffmpeg -loop 1 -i background.png -i voiceover.mp3 -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest short.mp4')
+            return "short.mp4"
+        except Exception as e:
+            print(f"Error creating video: {e}")
+            return None
     
     def upload_to_youtube(self, video_path, topic):
         """Upload video to YouTube"""
